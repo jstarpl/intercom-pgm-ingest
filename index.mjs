@@ -171,7 +171,7 @@ const begin = Date.now()
 const spinner = yocto({text: 'Transmitting...\n'}).start()
 
 setInterval(() => {
-  spinner.text = `Transmitting... ${formatTime(Date.now() - begin)}`
+  spinner.text = `Transmitting... ${formatTime(Date.now() - begin)}\n`
 }, 1000)
 
 function sendHearbeat() {
