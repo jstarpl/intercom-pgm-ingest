@@ -69,18 +69,12 @@ console.log(`Setting up local audio track...`)
 const pgmAudio = new wrtc.nonstandard.RTCAudioSource();
 const pgmTrack = pgmAudio.createTrack();
 
-// pgmAudio.onData({
-//   bitsPerSample: 16,
-//   sampleRate: 48000,
-//   channelCount: 1,
-//   samples
-// })
-
-const cmd = ffmpeg()
+const audioInput = ffmpeg()
+  .inputOption('-protocol_whitelist ALL')
   .input(args[0]);
 
 if (options.inputFormat) {
-  cmd.inputFormat(options.inputFormat);
+  audioInput.inputFormat(options.inputFormat);
 }
 
 const AUDIO_CHANNELS = 1
@@ -88,7 +82,7 @@ const SAMPLE_RATE = 48000
 const BITS_PER_SAMPLE = 16
 const CHUNK_LENGTH_MS = 0.01 // 10ms
 
-cmd
+audioInput
   .outputFormat(`s${BITS_PER_SAMPLE}le`)
   .audioChannels(AUDIO_CHANNELS)
   .audioFrequency(SAMPLE_RATE)
@@ -99,7 +93,7 @@ const outputStream = new AudioBuffer({
   bitsPerSample: BITS_PER_SAMPLE,
 })
 
-cmd
+audioInput
   .output(outputStream)
 
 outputStream.on('data', (data) => {
@@ -113,7 +107,7 @@ outputStream.on('data', (data) => {
 
 pc.addTrack(pgmTrack);
 
-cmd.run()
+audioInput.run()
 
 if (options.v) {
   console.log(`Received remote sdp: "${sessionInfo.sdp}"`)
