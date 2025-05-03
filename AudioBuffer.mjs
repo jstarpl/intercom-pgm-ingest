@@ -5,41 +5,55 @@ export class AudioBuffer extends Writable {
   chunkLength = 0;
   totalBytes = 0;
   chunkSize = 0;
+  chunkLowWaterMark = 0;
 
   constructor(options) {
     super(options);
     this.chunkLength = options.chunkLength;
-    this.chunkSize = options.chunkLength * options.sampleRate * ((options.bitsPerSample ?? 16) / 8) * (options.channelCount ?? 1)
+    this.chunkLowWaterMark = (options.lowWaterMark ?? 0 + 1) * this.chunkSize;
+    this.chunkSize =
+      options.chunkLength *
+      options.sampleRate *
+      (
+        (options.bitsPerSample ?? 16) / 8
+      ) *
+      (options.channelCount ?? 1);
   }
 
   emitChunkIfAvailable() {
-    if (this.totalBytes < this.chunkSize) return
+    if (this.totalBytes < this.chunkLowWaterMark) {
+      return
+    }
 
-    const newChunk = Buffer.alloc(this.chunkSize)
+    const newChunk = Buffer.alloc(this.chunkSize);
     let cursor = 0;
 
-    while (cursor < this.chunkSize) {
-      const head = this.buffer.shift()
-      if (head === undefined) throw new Error('Buffer underflow error')
+    while (cursor < this.chunkSize && this.buffer.length) {
+      const head = this.buffer.shift();
   
-      const bytesFromHead = Math.min(this.chunkSize - cursor, head.byteLength)
-      head.copy(newChunk, cursor, 0, bytesFromHead)
-      cursor += bytesFromHead
+      const bytesFromHead = Math.min(this.chunkSize - cursor, head.byteLength);
+      head.copy(newChunk, cursor, 0, bytesFromHead);
+      cursor += bytesFromHead;
+      
       if (bytesFromHead < head.byteLength) {
-        const leftOverSize = head.byteLength - bytesFromHead
-        const leftOver = Buffer.from(head.buffer, bytesFromHead, leftOverSize)
-        head.copy(leftOver, 0, bytesFromHead, head.byteLength)
+        const leftOverSize = head.byteLength - bytesFromHead;
+        const leftOver = Buffer.alloc(leftOverSize);
+        head.copy(leftOver, 0, bytesFromHead, head.byteLength);
 
-        this.buffer.unshift(leftOver)
+        this.buffer.unshift(leftOver);
       }
     }
 
-    this.totalBytes = this.totalBytes - this.chunkSize
+    this.totalBytes = this.totalBytes - this.chunkSize;
 
-    this.emit('data', newChunk)
+    this.emit('data', newChunk);
 
-    setTimeout(() => {
-      this.emitChunkIfAvailable()
+    // don't schedule a new timeout, if one is already scheduled
+    if (this._emitTimeout) return
+
+    this._emitTimeout = setTimeout(() => {
+      this._emitTimeout = null;
+      this.emitChunkIfAvailable();
     }, (this.chunkLength * 1000) - 2)
   }
 
@@ -47,7 +61,6 @@ export class AudioBuffer extends Writable {
     this.buffer.push(chunk)
     this.totalBytes += chunk.byteLength
 
-    // this.emit('data', chunk); // Emit 'data' event on write
     this.emitChunkIfAvailable()
     callback(); // Signal that writing is done
   }

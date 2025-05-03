@@ -2,6 +2,32 @@ import { program } from 'commander';
 import wrtc from '@roamhq/wrtc';
 import ffmpeg from 'fluent-ffmpeg';
 import { AudioBuffer } from './AudioBuffer.mjs';
+import yocto from 'yocto-spinner'
+
+function timedLog(message, ...args) {
+  console.log(`[${new Date().toISOString()}] ${message}`, ...args)
+}
+timedLog.error = function(message, ...args) {
+  console.error(`[${new Date().toISOString()}] ${message}`, ...args)
+}
+
+function formatTime(time) {
+  const totalSeconds = Math.floor(time / 1000)
+  const totalMinutes = Math.floor(totalSeconds / 60)
+  const totalHours = Math.floor(totalMinutes / 60)
+  const totalDays = Math.floor(totalHours / 24)
+
+  let output = `${(totalMinutes % 60).toString().padStart(2, '0')}:${(totalSeconds % 60).toString().padStart(2, '0')}`
+
+  if (totalHours > 0) {
+    output = `${(totalHours % 24).toString().padStart(2, '0')}:` + output
+  }
+  if (totalDays > 0) {
+    output = `${totalDays.toString()}d ` + output
+  }
+
+  return output
+}
 
 program
   .requiredOption('-p, --productionId <productionId>', 'Production ID to connect to')
@@ -90,6 +116,7 @@ const outputStream = new AudioBuffer({
   chunkLength: CHUNK_LENGTH_MS, // 10ms
   sampleRate: SAMPLE_RATE,
   bitsPerSample: BITS_PER_SAMPLE,
+  lowWaterMark: 1,
 })
 
 audioInput
@@ -105,6 +132,12 @@ outputStream.on('data', (data) => {
 })
 
 pc.addTrack(pgmTrack);
+
+audioInput.on('error', (error) => {
+  timedLog.error('Error in audio input processing', error)
+
+  process.exit(1)
+})
 
 audioInput.run()
 
@@ -125,8 +158,6 @@ if (!sdpAnswer.sdp) {
 
 await pc.setLocalDescription(sdpAnswer);
 
-const patchSessionUrl = new URL(`${baseUrl}/session/${sessionInfo.sessionId}`);
-
 if (options.v) {
   console.log(`Sending local sdp: "${sdpAnswer.sdp}"`)
 }
@@ -135,16 +166,46 @@ await apiCall(`/session/${sessionInfo.sessionId}`, 'PATCH', {
   sdpAnswer: sdpAnswer.sdp,
 });
 
-console.log("Sending...")
+const begin = Date.now()
 
-const keepAlive = setInterval(() => {
+const spinner = yocto({text: 'Transmitting...\n'}).start()
+
+setInterval(() => {
+  spinner.text = `Transmitting... ${formatTime(Date.now() - begin)}`
+}, 1000)
+
+function sendHearbeat() {
   apiCall(`/heartbeat/${sessionInfo.sessionId}`)
     .then(() => {
       if (options.v) {
-        console.log('Keepalive')
+        timedLog('Keepalive')
       }
     })
-    .catch(() => {
-      console.error('Keepalive failed')
+    .catch((e) => {
+      timedLog.error('Keepalive failed', e)
     })
+}
+
+const keepAlive = setInterval(() => {
+  sendHearbeat();
 }, 10 * 1000)
+
+function printStats() {
+  pc.getStats()
+    .then((stats) => {
+      let statsStr = []
+      for (const [key, value] of stats) {
+        if (!key.includes("Outbound")) continue
+        statsStr.push(`${key}: ${JSON.stringify(value)}`)
+      }
+      timedLog(`Stats: ${statsStr.join(', ')}`)
+    })
+}
+
+if (options.v) {
+  printStats();
+  
+  const info = setInterval(() => {
+    printStats()
+  }, 60 * 1000)
+}
