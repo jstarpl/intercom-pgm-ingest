@@ -28,7 +28,6 @@ export class AudioBuffer extends Writable {
       if (bytesFromHead < head.byteLength) {
         const leftOverSize = head.byteLength - bytesFromHead
         const leftOver = Buffer.from(head.buffer, bytesFromHead, leftOverSize)
-        head.copy(leftOver, 0, bytesFromHead, head.byteLength)
 
         this.buffer.unshift(leftOver)
       }
