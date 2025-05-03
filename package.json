@@ -1,7 +1,10 @@
 {
-  "name": "intercom-pgm-ingest",
+  "name": "@jstarpl/intercom-pgm-ingest",
   "version": "1.0.0",
   "main": "index.mjs",
+  "bin": {
+    "intercom-pgm-ingest": "index.mjs"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

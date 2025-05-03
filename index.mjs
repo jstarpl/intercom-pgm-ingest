@@ -4,13 +4,13 @@ import ffmpeg from 'fluent-ffmpeg';
 import { AudioBuffer } from './AudioBuffer.mjs';
 
 program
-  .option('-v')
   .requiredOption('-p, --productionId <productionId>', 'Production ID to connect to')
   .option('-l, --lineId <lineId>', 'Line ID to connect to')
   .requiredOption('-u, --userName <userName>', 'Username to present as in the Line')
   .requiredOption('-s, --serverUrl <serverUrl>', 'Intercom Manager Server base URL (e.g. "http://localhost:8000")')
   .requiredOption('--apiPrefix <apiPrefix>', 'Intercom Manager API version prefix (default is "/api/v1")', '/api/v1')
   .option('-f <inputFormat>', 'Input format to use for ffmpeg (e.g. "alsa" or "jack")')
+  .option('-v', 'Verbose output')
   .argument("[inputFileOrStream]")
 
 program.parse();
