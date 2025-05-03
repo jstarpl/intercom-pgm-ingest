@@ -37,7 +37,7 @@ async function apiCall(path, method, body) {
   });
   if (!res.ok) throw new Error(`Invalid response for ${path}: ${res.status}`)
 
-  if (res.headers.get('content-type').startsWith('application/json'))
+  if (res.headers.get('content-type')?.startsWith('application/json'))
     return res.json()
 
   return res.text()
