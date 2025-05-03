@@ -1,0 +1,16 @@
+{
+  "name": "intercom-pgm-ingest",
+  "version": "1.0.0",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@roamhq/wrtc": "^0.8.0",
+    "commander": "^13.1.0",
+    "fluent-ffmpeg": "^2.1.3"
+  }
+}
