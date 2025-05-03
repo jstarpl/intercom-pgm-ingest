@@ -70,8 +70,7 @@ const pgmAudio = new wrtc.nonstandard.RTCAudioSource();
 const pgmTrack = pgmAudio.createTrack();
 
 const audioInput = ffmpeg()
-  .input(args[0])
-  .inputOption('-protocol_whitelist ALL');
+  .input(args[0]);
 
 if (options.inputFormat) {
   audioInput.inputFormat(options.inputFormat);
