@@ -20,15 +20,30 @@ const args = program.args;
 
 const baseUrl = `${options.serverUrl}${options.apiPrefix}`;
 
-const productionUrl = new URL(`${baseUrl}/production/${options.productionId}`);
+async function apiCall(path, method, body) {
+  const headers = {}
 
-const res0 = await fetch(productionUrl, {
-  method: 'GET'
-});
+  let fetchBody = undefined
 
-if (!res0.ok) throw new Error(`Invalid response for production: ${res0.status}`);
+  if (body) {
+    headers['content-type'] = 'application/json'
+    fetchBody = JSON.stringify(body)
+  }
 
-const productionInfo = await res0.json();
+  const res = await fetch(`${baseUrl}${path}`, {
+    method: method ?? 'GET',
+    headers,
+    body: fetchBody,
+  });
+  if (!res.ok) throw new Error(`Invalid response for ${path}: ${res.status}`)
+
+  if (res.headers.get('content-type').startsWith('application/json'))
+    return res.json()
+
+  return res.text()
+}
+
+const productionInfo = await apiCall(`/production/${options.productionId}`);
 let targetLine = undefined
 
 if (options.lineId) {
@@ -39,23 +54,11 @@ if (options.lineId) {
 
 console.log(`Selected target line: "${targetLine.id}"`)
 
-const newSessionUrl = new URL(`${baseUrl}/session`);
-
-const res1 = await fetch(newSessionUrl, {
-  method: 'POST',
-  headers: {
-    'content-type': 'application/json',
-  },
-  body: JSON.stringify({
-    lineId: targetLine.id,
-    productionId: options.productionId,
-    username: options.userName,
-  })
+const sessionInfo = await apiCall(`/session`, 'POST', {
+  lineId: targetLine.id,
+  productionId: options.productionId,
+  username: options.userName,
 });
-
-if (!res1.ok) throw new Error(`Invalid response for session creation: ${res1.status}`);
-
-const sessionInfo = await res1.json();
 
 console.log(`Created session: "${sessionInfo.sessionId}"`)
 
@@ -135,24 +138,14 @@ if (options.v) {
   console.log(`Sending local sdp: "${sdpAnswer.sdp}"`)
 }
 
-const res2 = await fetch(patchSessionUrl, {
-  method: 'PATCH',
-  headers: {
-    'content-type': 'application/json',
-  },
-  body: JSON.stringify({
-    sdpAnswer: sdpAnswer.sdp,
-  })
+await apiCall(`/session/${sessionInfo.sessionId}`, 'PATCH', {
+  sdpAnswer: sdpAnswer.sdp,
 });
 
 console.log("Sending...")
 
-if (!res2.ok) throw new Error(`Invalid response for session patch: ${res2.status}`);
-
 const keepAlive = setInterval(() => {
-  const patchSessionUrl = new URL(`${baseUrl}/heartbeat/${sessionInfo.sessionId}`);
-
-  fetch(patchSessionUrl)
+  apiCall(`/heartbeat/${sessionInfo.sessionId}`)
     .then(() => {
       if (options.v) {
         console.log('Keepalive')
