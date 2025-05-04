@@ -116,7 +116,7 @@ const outputStream = new AudioBuffer({
   chunkLength: CHUNK_LENGTH_MS, // 10ms
   sampleRate: SAMPLE_RATE,
   bitsPerSample: BITS_PER_SAMPLE,
-  lowWaterMark: 1,
+  lowWaterMark: 0,
 })
 
 audioInput

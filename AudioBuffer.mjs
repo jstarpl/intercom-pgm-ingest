@@ -54,7 +54,7 @@ export class AudioBuffer extends Writable {
     this._emitTimeout = setTimeout(() => {
       this._emitTimeout = null;
       this.emitChunkIfAvailable();
-    }, (this.chunkLength * 1000) - 2)
+    }, this.chunkLength * 1000)
   }
 
   _write(chunk, encoding, callback) {
