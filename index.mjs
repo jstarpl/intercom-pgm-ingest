@@ -120,7 +120,9 @@ const outputStream = new AudioBuffer({
 })
 
 audioInput
-  .output(outputStream)
+  .output(outputStream, {
+    end: true
+  })
 
 outputStream.on('data', (data) => {
   pgmAudio.onData({
@@ -129,6 +131,11 @@ outputStream.on('data', (data) => {
     channelCount: AUDIO_CHANNELS,
     samples: new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2)
   })
+})
+outputStream.on('finish', () => {
+  timedLog('Stream ended. Shutting down...')
+
+  process.exit(2)
 })
 
 pc.addTrack(pgmTrack);
