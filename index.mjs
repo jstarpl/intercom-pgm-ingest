@@ -36,6 +36,7 @@ program
   .requiredOption('-s, --serverUrl <serverUrl>', 'Intercom Manager Server base URL (e.g. "http://localhost:8000")')
   .requiredOption('--apiPrefix <apiPrefix>', 'Intercom Manager API version prefix', '/api/v1')
   .option('-f <inputFormat>', 'Input format to use for ffmpeg (e.g. "alsa" or "jack")')
+  .option('--volume <volume>', 'Modify the input volume (e.g. "0.5" or "-5dB")')
   .option('-v', 'Verbose output')
   .argument("[inputFileOrStream]")
 
@@ -106,6 +107,10 @@ const AUDIO_CHANNELS = 1
 const SAMPLE_RATE = 48000
 const BITS_PER_SAMPLE = 16
 const CHUNK_LENGTH_MS = 0.01 // 10ms
+
+if (options.volume) {
+  audioInput.audioFilter(`volume=${options.volume}`)
+}
 
 audioInput
   .outputFormat(`s${BITS_PER_SAMPLE}le`)
